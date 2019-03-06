@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="platform-be" default="build">
+
+    <!--初始化-->
+    <target name="build" depends="composer,phpcpd,phpunit"/>
+    <target name="clean" unless="clean.done" description="Cleanup build artifacts">
+        <delete dir="${basedir}/verdor"/>
+        <property name="clean.done" value="true"/>
+    </target>
+
+    <!--初始化完成-->
+    <!-- Use this when the tools are managed by Composer in ${basedir}/vendor/bin  -->
+    <property name="composer" value="${basedir}/composer.phar"/>     <!--重复代码-->
+    <property name="phpcpd" value="${basedir}/vendor/bin/phpcpd"/>     <!--重复代码-->
+    <property name="phpcs-fix" value="${basedir}/vendor/bin/php-cs-fixer"/>    <!--代码格式化检查-->
+    <property name="phpcs" value="${basedir}/vendor/bin/phpcs"/>    <!--代码格式化检查-->
+    <property name="phpmd" value="${basedir}/vendor/bin/phpmd"/>      <!--代码复杂程度检查工具-->
+    <property name="phpunit" value="${basedir}/vendor/bin/phpunit"/>    <!--代码测试-->
+    <property name="parallel-lint" value="${basedir}/vendor/bin/parallel-lint"/>    <!--代码语法测试-->
+    <property name="logdir" value="${basedir}/build"/>
+    <!--composer 安装-->
+    <target name="composer" description="Composer install">
+        <exec executable="${composer}" failonerror="true" dir="${basedir}">
+            <arg value="install"/>
+        </exec>
+        <property name="composer.done" value="true"/>
+    </target>
+
+    <!--重复代码检查-->
+    <target name="phpcpd" description="Generate pmd-cpd.xml using PHPCPD">
+        <exec executable="${phpcpd}">
+            <arg line="--exclude vendor/"/>
+            <arg line="${basedir}"/>
+        </exec>
+        <property name="phpcpd.done" value="true"/>
+    </target>
+    <!--重复代码检查完成-->
+
+    <!--代码自动规范-->
+    <target name="phpcs-fix" depends="phpcpd">
+        <exec executable="${phpcs-fix}" failonerror="true" dir="${basedir}">
+            <arg value="fix"/>
+            <arg value="${basedir}"/>
+            <arg value="--rules=@PSR2"/>
+        </exec>
+        </target>
+    <!--代码自动规范完成-->
+    <!--代码规范-->
+    <target name="phpcs" depends="phpcpd">
+        <exec executable="${phpcs}" failonerror="true">
+            <arg value="--report=full"/>
+            <arg value="--standard=PSR2"/>
+            <arg value="--colors"/>
+            <arg value="--extensions=php"/>
+            <arg value="--ignore=vendor/*,console/Console.php,public/index.php"/>
+            <arg path="${basedir}"/>
+        </exec>
+    </target>
+    <!--代码规范完成-->
+
+    <!--语法-->
+    <target name="plint" description="Perform syntax check of sourcecode files">
+        <exec executable="${parallel-lint}" failonerror="true">
+            <arg line="--exclude"/>
+            <arg path="${basedir}/vendor/"/>
+            <arg line=" --blame"/>
+            <arg path="${basedir}"/>
+        </exec>
+    </target>
+    <!--语法完成-->
+
+    <!--测试-->
+    <target name="phpunit" description="Run unit tests with PHPUnit" >
+        <exec executable="${phpunit}" failonerror="true" dir="${basedir}" >
+            <arg line="${basedir}/app/test/"/>
+            <arg line="..env development"/>
+            <arg line="--bootstrap ${basedir}/vendor/autoload.php" />
+        </exec>
+    </target>
+    <!--测试完成-->
+
+    <target name="phpmd" description="phpmd">
+        <exec executable="${phpmd}" failonerror="true">
+            <arg line="${basedir}"/>
+            <arg line="text"/>
+            <arg line="codesize,controversial,design,naming,unusedcode"/>
+            <arg line="--suffixes php" />
+            <arg line="--exclude vendor,lib,console/Console.php,console/GenCoverage.php,app/controllers/TestController.php"/>
+        </exec>
+    </target>
+</project>
